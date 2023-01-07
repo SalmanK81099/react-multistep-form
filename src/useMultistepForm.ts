@@ -1,34 +1,68 @@
-import { ReactElement, useState } from "react"
+import { useMemo, useState } from "react";
 
-export function useMultistepForm(steps: ReactElement[]) {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0)
+interface Step {
+  type: React.ElementType;
+  props: any;
+}
 
-  function next() {
-    setCurrentStepIndex(i => {
-      if (i >= steps.length - 1) return i
-      return i + 1
-    })
-  }
+interface ReturnType {
+  currentStepIndex: number;
+  step: React.ReactElement;
+  steps: React.ReactElement[];
+  isFirstStep: boolean;
+  isLastStep: boolean;
+  goTo: (index: number) => void;
+  next: () => void;
+  back: () => void;
+}
 
-  function back() {
-    setCurrentStepIndex(i => {
-      if (i <= 0) return i
-      return i - 1
-    })
-  }
+export function useMultistepForm(
+  steps: Step[],
+  globalProps = {}
+): ReturnType {
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  function goTo(index: number) {
-    setCurrentStepIndex(index)
-  }
+  const next = () => {
+    setCurrentStepIndex((i) => {
+      if (i >= steps.length - 1) return i;
+      return i + 1;
+    });
+  };
+
+  const back = () => {
+    setCurrentStepIndex((i) => {
+      if (i <= 0) return i;
+      return i - 1;
+    });
+  };
+
+  const goTo = (index: number) => {
+    setCurrentStepIndex(index);
+  };
+
+  const enhancedSteps = useMemo(
+    () =>
+      steps.map((step, index) => (
+        <step.type
+          {...{ ...step.props, ...globalProps }}
+          goTo={goTo}
+          next={next}
+          back={back}
+          key={index}
+          currentStepIndex={currentStepIndex}
+        />
+      )),
+    [currentStepIndex, steps, goTo, next, back]
+  );
 
   return {
     currentStepIndex,
-    step: steps[currentStepIndex],
-    steps,
+    step: enhancedSteps[currentStepIndex],
+    steps: enhancedSteps,
     isFirstStep: currentStepIndex === 0,
     isLastStep: currentStepIndex === steps.length - 1,
     goTo,
     next,
     back,
-  }
+  };
 }
